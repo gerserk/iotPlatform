@@ -5,4 +5,6 @@ This is a project I made for an IOT platform which uses as main core DeviceHive 
 - an InfluxDB instance https://www.influxdata.com/ to store telemetry data
 - the Devicehive block
 
-to setup the platform use the docker-compose command with all its files
+to setup the platform use the docker-compose command with all its files.
+
+Since all the functioning is based on the service catalog, check its config file to see all available endpoints.
