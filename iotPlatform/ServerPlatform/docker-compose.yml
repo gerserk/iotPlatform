@@ -1,0 +1,217 @@
+version: "3"
+services:
+ 
+  influxdb:
+    image: influxdb:2.0
+    container_name: platform_influx
+    restart: always
+    environment:
+      - DOCKER_INFLUXDB_INIT_MODE=setup
+      - DOCKER_INFLUXDB_INIT_USERNAME=yourUser
+      - DOCKER_INFLUXDB_INIT_PASSWORD=yourPass
+      - DOCKER_INFLUXDB_INIT_ORG=yourOrg
+      - DOCKER_INFLUXDB_INIT_BUCKET=my-bucket
+    ports:
+      - 8086
+    volumes:
+      - myInfluxVolume:/var/lib/influxdb
+
+  influxapi:
+    container_name: platform_InfluxConnector
+    build:
+      dockerfile: Dockerfile
+      context: ./influxConnector
+    links:
+      - influxdb
+    volumes:
+      - apiFiles:/files/api
+    restart: "always"
+    depends_on:
+      - catalog
+ 
+  catalog:
+    container_name: platform_Catalog
+    build:
+      dockerfile: Dockerfile
+      context: ./catalog
+    volumes:
+      - apiFiles:/files/catalog
+    restart: "always"
+
+  nginx:
+    links:
+      - catalog
+      - dh_proxy
+      - webapp
+      - influxapi
+      - timeplugin
+    restart: always
+    build:
+      dockerfile: Dockerfile
+      context: ./nginx
+    ports:
+      - 80:80
+      - 5000
+  
+  zookeeper:
+    image: wurstmeister/zookeeper
+    container_name: platform_zookeper
+    ports:
+      - "2181"
+    restart: unless-stopped
+    environment:
+      ZOOKEEPER_CLIENT_PORT: 2181
+
+  kafka:
+    image: wurstmeister/kafka:1.0.0
+    container_name: platform_kafka
+    ports:
+      - "9092"
+    links:
+      - "zookeeper"
+    restart: unless-stopped
+    environment:
+      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:9092
+      KAFKA_NUM_PARTITIONS: 3
+
+  postgres:
+    image: postgres:10
+    container_name: platform_postgres
+    ports:
+      - "5432"
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${DH_POSTGRES_USERNAME:-postgres}
+      POSTGRES_PASSWORD: ${DH_POSTGRES_PASSWORD:-mysecretpassword}
+      POSTGRES_DB: ${DH_POSTGRES_DB:-postgres}
+    volumes:
+      - devicehive-db:/var/lib/postgresql/data
+
+  wsproxy:
+    image: devicehive/devicehive-ws-proxy:${DH_WS_PROXY_TAG:-1.1.0}
+    container_name: platform_wsproxy_internal
+    links:
+      - "kafka"
+    restart: unless-stopped
+    environment:
+      KAFKA.KAFKA_HOSTS: ${DH_KAFKA_BOOTSTRAP_SERVERS:-kafka:9092}
+      PROXY.WEB_SOCKET_SERVER_HOST: 'wsproxy'
+
+  dh_frontend:
+    image: devicehive/devicehive-frontend:${DH_TAG:-3.4.5}
+    container_name: platform_dh_frontend
+    ports:
+      - "8080"
+    links:
+      - "postgres"
+      - "kafka"
+      - "zookeeper"
+      - "dh_backend"
+      - "dh_auth"
+      - "wsproxy"
+    restart: unless-stopped
+    environment:
+      DH_ZK_ADDRESS: ${DH_ZK_ADDRESS:-zookeeper}
+      DH_ZK_PORT: ${DH_ZK_PORT:-2181}
+      DH_KAFKA_BOOTSTRAP_SERVERS: ${DH_KAFKA_BOOTSTRAP_SERVERS:-kafka:9092}
+      DH_POSTGRES_ADDRESS: ${DH_POSTGRES_ADDRESS:-postgres}
+      DH_POSTGRES_PORT: ${DH_POSTGRES_PORT:-5432}
+      DH_POSTGRES_USERNAME: ${DH_POSTGRES_USERNAME:-postgres}
+      DH_POSTGRES_PASSWORD: ${DH_POSTGRES_PASSWORD:-mysecretpassword}
+      DH_POSTGRES_DB: ${DH_POSTGRES_DB:-postgres}
+      DH_RPC_CLIENT_RES_CONS_THREADS: ${DH_RPC_CLIENT_RES_CONS_THREADS:-3}
+      DH_LOG_LEVEL: ${DH_LOG_LEVEL:-INFO}
+      DH_WS_PROXY: wsproxy:3000
+      ROOT_LOG_LEVEL: ${ROOT_LOG_LEVEL:-WARN}
+      DH_AUTH_URL: ${DH_AUTH_URL:-http://dh_auth:8090/auth/rest}
+      HC_MEMBERS: hazelcast
+      HC_GROUP_NAME: ${HC_GROUP_NAME:-dev}
+      HC_GROUP_PASSWORD: ${HC_GROUP_PASSWORD:-dev-pass}
+      JWT_SECRET: ${JWT_SECRET:-michelangelo}
+      SPRING_PROFILES_ACTIVE: ${DH_FE_SPRING_PROFILES_ACTIVE:-ws-kafka-proxy-frontend}
+
+  dh_auth:
+    image: devicehive/devicehive-auth:${DH_TAG:-3.4.5}
+    container_name: platform_auth
+    ports:
+      - "8090"
+    links:
+      - "kafka"
+      - "hazelcast"
+      - "postgres"
+      - "wsproxy"
+      - "zookeeper"
+    restart: unless-stopped
+    environment:
+      DH_ZK_ADDRESS: ${DH_ZK_ADDRESS:-zookeeper}
+      DH_ZK_PORT: ${DH_ZK_PORT:-2181}
+      DH_KAFKA_BOOTSTRAP_SERVERS: ${DH_KAFKA_BOOTSTRAP_SERVERS:-kafka:9092}
+      DH_POSTGRES_ADDRESS: ${DH_POSTGRES_ADDRESS:-postgres}
+      DH_POSTGRES_PORT: ${DH_POSTGRES_PORT:-5432}
+      DH_POSTGRES_USERNAME: ${DH_POSTGRES_USERNAME:-postgres}
+      DH_POSTGRES_PASSWORD: ${DH_POSTGRES_PASSWORD:-mysecretpassword}
+      DH_POSTGRES_DB: ${DH_POSTGRES_DB:-postgres}
+      DH_LOG_LEVEL: ${DH_LOG_LEVEL:-INFO}
+      ROOT_LOG_LEVEL: ${ROOT_LOG_LEVEL:-WARN}
+      HC_MEMBERS: hazelcast
+      HC_GROUP_NAME: ${HC_GROUP_NAME:-dev}
+      HC_GROUP_PASSWORD: ${HC_GROUP_PASSWORD:-dev-pass}
+      JWT_SECRET: ${JWT_SECRET:-michelangelo}
+      DH_WS_PROXY: wsproxy:3000
+      SPRING_PROFILES_ACTIVE: ${DH_AUTH_SPRING_PROFILES_ACTIVE:-ws-kafka-proxy}
+
+  hazelcast:
+    image: devicehive/devicehive-hazelcast:${DH_TAG:-3.4.5}
+    container_name: platform_hazelcast
+    ports:
+      - "5701:5701"
+    restart: unless-stopped
+    environment:
+      MAX_HEAP_SIZE: "512m"
+      MIN_HEAP_SIZE: "512m"
+
+  dh_backend:
+    image: devicehive/devicehive-backend:${DH_TAG:-3.4.5}
+    container_name: platform_dh_backend
+    links:
+      - "hazelcast"
+      - "kafka"
+      - "postgres"
+      - "zookeeper"
+      - "wsproxy"
+    restart: unless-stopped
+    environment:
+      DH_ZK_ADDRESS: ${DH_ZK_ADDRESS:-zookeeper}
+      DH_ZK_PORT: ${DH_ZK_PORT:-2181}
+      DH_KAFKA_BOOTSTRAP_SERVERS: ${DH_KAFKA_BOOTSTRAP_SERVERS:-kafka:9092}
+      DH_POSTGRES_ADDRESS: ${DH_POSTGRES_ADDRESS:-postgres}
+      DH_POSTGRES_PORT: ${DH_POSTGRES_PORT:-5432}
+      DH_POSTGRES_USERNAME: ${DH_POSTGRES_USERNAME:-postgres}
+      DH_POSTGRES_PASSWORD: ${DH_POSTGRES_PASSWORD:-mysecretpassword}
+      DH_POSTGRES_DB: ${DH_POSTGRES_DB:-postgres}
+      DH_RPC_SERVER_REQ_CONS_THREADS: ${DH_RPC_SERVER_REQ_CONS_THREADS:-3}
+      DH_RPC_SERVER_WORKER_THREADS: ${DH_RPC_SERVER_WORKER_THREADS:-3}
+      DH_LOG_LEVEL: ${DH_LOG_LEVEL:-INFO}
+      DH_WS_PROXY: wsproxy:3000
+      ROOT_LOG_LEVEL: ${ROOT_LOG_LEVEL:-INFO}
+      HC_MEMBERS: hazelcast
+      HC_GROUP_NAME: ${HC_GROUP_NAME:-dev}
+      HC_GROUP_PASSWORD: ${HC_GROUP_PASSWORD:-dev-pass}
+      SPRING_PROFILES_ACTIVE: ${DH_BE_SPRING_PROFILES_ACTIVE:-ws-kafka-proxy-backend}
+
+  dh_proxy:
+    image: devicehive/devicehive-proxy:${DH_PROXY_TAG:-3.4.5.1}
+    container_name: platform_dh_proxy
+    links:
+      - "dh_auth"
+      - "dh_frontend"
+    ports:
+      - "8080" 
+    restart: unless-stopped
+
+volumes:
+  devicehive-db:
+  myInfluxVolume:
+  apiFiles:
+  webAppFiles:

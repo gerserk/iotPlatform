@@ -1,0 +1,62 @@
+{
+    "influx_credentials":{
+        "user":"yourUser",
+        "password":"yourPass"
+    },
+    "org":"yourOrg",
+    
+    "plugin":{
+        "name":"InfluxPlugin",
+        "description":"influxdb plugin to send collected data"
+    
+    },
+    
+    "retention_time":604800,
+
+    "dh_credentials":{
+        "user":"yourUser",
+        "password":"yourPass"
+        },
+
+    "links":{
+        "registerCatalog":"http://nginx:5000/catalog/register/service"
+        
+    },
+    "endpoints":{
+        
+    },
+
+    "registration":{
+        "name":"InfluxConnector",
+        "description":"an api service to make the user interact with the database",
+        "url":"http://nginx:5000/influxapi/",
+        "status":"on",
+        "t":0,
+        "URIs":{
+            "realTime":"http://nginx:5000/influxapi/realTime",
+            "listMeasures":"http://nginx:5000/influxapi/listMeasures/",
+            "deleteBucket":"http://nginx:5000/influxapi/delete_bucket",
+            "query":"http://nginx:5000/influxapi/query"
+
+        }
+        },
+
+    "bucket_keys":{
+        "measurement":"measurement",
+        "sensor_name":"mchin",
+        "commands":"commands"
+    
+    },
+    
+    "conversionValues":{
+        "tempList":"(1/((1/298.15)+ (1/4300)*(math.log((1240/10000)*((1024/value)-1))))) - 273.15",
+        "hallList":"(4.39*(value/1024)-0.826)/0.0323"
+    },
+
+    "dataTypes":{
+        "command":"commandReceived",
+        "tempList": ["a_T1", "a_T2", "a_T3", "a_T4", "T_sondaIn", "T_sondaOut"],
+        "hallList": ["d_Hall1","d_Hall2"],
+        "metadata":["isBlocked" ,"networkId" ,"deviceId","deviceTypeId" ,"id" ,"name"]
+    }
+}

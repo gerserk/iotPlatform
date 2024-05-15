@@ -1,0 +1,57 @@
+{   
+    "nameList":["authentication service", "frontend service", "plugin service"],
+    "links":{
+        "influx_url":"http://influxdb:8086",
+        "auth_url":"http://nginx:5000/dh/auth/rest",
+        "token_url":"http://nginx:5000/dh/auth/rest/token",
+        "topic_url":"http://nginx:5000/dh/plugin/rest/plugin?returnCommands=false&returnUpdatedCommands=false&returnNotifications=true",
+        "refresh_url":"http://nginx:5000/dh/auth/rest/token/refresh",
+        "verifyToken_url":"http://nginx:5000/dh/api/rest/network?take=20&skip=0",
+        "user_url":"http://nginx:5000/dh/api/rest/user",
+        "pluginList_url":"http://nginx:5000/dh/plugin/rest/plugin?take=20&skip=0",
+        "pluginDel_url":"http://nginx:5000/dh/plugin/rest/plugin?topicName=",
+        "machineDel_url":"http://nginx:5000/dh/api/rest/device/",
+        "checkCommand_url":"http://nginx:5000/dh/api/rest/device/{machine}/notification",
+        "sendCommand_url":"http://nginx:5000/dh/api/rest/device/{machine}/command",
+        "modifyCommand_url":"http://nginx:5000/dh/api/rest/device/{machine}/command/{commandId}",
+        "machineList_url":"http://nginx:5000/dh/api/rest/device",
+        "usersList_url":"http://nginx:5000/dh/api/rest/user"
+        },
+    "endpoints":{
+        "influx":"http://nginx:5000/catalog/endopints/db/influx_url",
+        "auth":"http://nginx:5000/catalog/endopints/dh/auth_url",
+        "token":"http://nginx:5000/catalog/endopints/dh/token_url",
+        "topic":"http://nginx:5000/catalog/endopints/dh/topic_url",
+        "refresh":"http://nginx:5000/catalog/endopints/dh/refresh_url",
+        "verifyToken":"http://nginx:5000/catalog/endopints/dh/verifyToken_url",
+        "user":"http://nginx:5000/catalog/endopints/dh/user_url",
+        "pluginList":"http://nginx:5000/catalog/endopints/dh/pluginList_url",
+        "pluginDel":"http://nginx:5000/catalog/endopints/dh/pluginDel_url",
+        "machineDel":"http://nginx:5000/catalog/endopints/dh/machineDel_url",
+        "checkCommand":"http://nginx:5000/catalog/endopints/dh/checkCommand_url",
+        "sendCommand":"http://nginx:5000/catalog/endopints/dh/sendCommand_url",
+        "modifyCommand":"http://nginx:5000/catalog/endopints/dh/modifyCommand_url",
+        "machineList":"http://nginx:5000/catalog/endopints/dh/machineList_url",
+        "usersList":"http://nginx:5000/catalog/endopints/dh/usersList_url"
+    },
+
+    "typeOfSer":{
+        "database":"db",
+        "deviceHive":"dh",
+        "myApi":"api"
+    },
+
+    "dhMasteruser":{
+        "login": "yourUser",
+        "role": 0,
+        "status": 0,
+        "password": "yourPass",
+        "data": {
+          "info": "this is the master user of the platform. Influx connector depends on this, do not delete"
+        }
+      },
+    "userToDel":{
+        "login":"dhadmin",
+        "password":"dhadmin_#911"
+    }
+}

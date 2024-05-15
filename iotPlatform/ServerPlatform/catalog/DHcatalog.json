@@ -1,0 +1,25 @@
+{
+    "DHservices": [
+        {
+            "name": "authentication service",
+            "description": "an api service to authenticate user",
+            "url": "http://nginx:443/dh/auth/rest/info",
+            "status": "off",
+            "t": 1691153292
+        },
+        {
+            "name": "frontend service",
+            "description": "api frontend service",
+            "url": "http://nginx:443/dh/api/rest/info",
+            "status": "on",
+            "t": 1691153292
+        },
+        {
+            "name": "plugin service",
+            "description": "api plugin managment service",
+            "url": "http://nginx:443/dh/plugin/rest/info",
+            "status": "off",
+            "t": 1691153292
+        }
+    ]
+}

@@ -1,0 +1,9 @@
+fastapi
+uvicorn
+influxdb
+influxdb_client
+requests
+devicehive
+devicehive_plugin
+websocket-client
+six
